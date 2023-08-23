@@ -1,0 +1,4 @@
+.DS_Store
+.env
+test_results
+test_results/**
