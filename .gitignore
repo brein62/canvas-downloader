@@ -1,6 +1,7 @@
 .DS_Store
 .env
 .values
+.files
 test_results
 test_results/**
 __pycache__

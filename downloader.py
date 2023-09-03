@@ -96,6 +96,14 @@ class Downloader:
 
     def download(self, fileList : list, root : str):
         """Downloads the files within the file list one-by-one, and saves into the folder specified by the root directory."""
+
+        try:
+            fileLog = open('.files', 'r')
+            loadedFiles = fileLog.readlines()
+            fileLog.close()
+        except:
+            loadedFiles = []
+
         for courses in fileList:
             course = courses['course']
             folders = courses['folders']
@@ -108,10 +116,35 @@ class Downloader:
 
                 fileList = folder['files']
                 for file in fileList:
-                    content = self.downloadFile(file['url'])
-                    f = open(f"{root}/{courseNameUsed}{path}/{file['display_name']}", "wb")
-                    f.write(content)
-                    f.close()
+
+                    fileFoundInLoadedFiles = False
+
+                    for i in range(len(loadedFiles)):
+                        if loadedFiles[i].strip().startswith(file['uuid']):
+                            if not loadedFiles[i].strip().endswith(file['modified_at']):
+                                loadedFiles[i] = file['uuid'] + " " + file['modified_at'] + '\n'
+                                content = self.downloadFile(file['url'])
+                                f = open(f"{root}/{courseNameUsed}{path}/{file['display_name']}", "wb")
+                                f.write(content)
+                                f.close()
+                            else:
+                                print(f"File ID {file['id']} is already updated!")
+                            fileFoundInLoadedFiles = True
+                            break
+                    
+                    if not fileFoundInLoadedFiles:
+                        loadedFiles.append(file['uuid'] + " " + file['modified_at'] + '\n')
+                        content = self.downloadFile(file['url'])
+                        f = open(f"{root}/{courseNameUsed}{path}/{file['display_name']}", "wb")
+                        f.write(content)
+                        f.close()
+
+        fileLog = open('.files', 'w')
+        for i in range(len(loadedFiles) - 1):
+            if not loadedFiles[i].endswith('\n'): 
+                loadedFiles[i] += '\n'
+        fileLog.writelines(loadedFiles)
+        fileLog.close()
 
     def download_test(self, fileList : list, root : str):
         """Simulates a downloader without performing the full and slow process of downloading the files."""
