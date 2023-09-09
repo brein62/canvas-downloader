@@ -1,5 +1,6 @@
 import requests
 import pathlib
+import tkinter as tk
 
 class color:
    PURPLE = '\033[95m'
@@ -13,29 +14,41 @@ class color:
    UNDERLINE = '\033[4m'
    END = '\033[0m'
 
-def runDownloader(root : str, canvasUrl : str, canvasToken : str):
-    fileList = []
-    downloader = Downloader(canvasUrl, canvasToken)
-    for course in downloader.fetchCourses():
-        print(color.BOLD + f"Course: {course['name']} ({course['course_code']})" + color.END)
-        foldersArray = []
-        for folder in downloader.getCourseFolders(course['id']):
-            courseFolderName = folder['full_name'][12:]
-            filesInFolder = downloader.getFilesFromFolder(folder['id'])
-            print(folder['id'], courseFolderName if courseFolderName != '' else '/')
-            print('\t'.join(list(map(lambda file: file['display_name'], filesInFolder))))
-            foldersArray.append({**folder, "files": filesInFolder})
-        print()
-        fileList.append({ "course": course, "folders": foldersArray })
+def runDownloader(root : str, canvasUrl : str, canvasToken : str, displayArea : tk.Text = None):
 
-    print(fileList)
+    displayArea.delete(1.0, tk.END)
+
+    downloader = Downloader(canvasUrl, canvasToken, displayArea)
+
+    fileList = downloader.loadFiles()
 
     downloader.download(fileList, root)
 
 class Downloader:
-    def __init__(self, canvasUrl : str, canvasToken : str):
+    def __init__(self, canvasUrl : str, canvasToken : str, displayArea : tk.Text = None):
         self.canvasUrl = canvasUrl
         self.canvasToken = canvasToken
+        self.displayArea = displayArea
+
+    def _print(self, content : str = ""):
+        print(content)
+        if self.displayArea != None:
+            self.displayArea.insert(tk.END, content + "\n")
+
+    def loadFiles(self):
+        fileList = []
+        for course in self.fetchCourses():
+            self._print(color.BOLD + f"Course: {course['name']} ({course['course_code']})" + color.END)
+            foldersArray = []
+            for folder in self.getCourseFolders(course['id']):
+                courseFolderName = folder['full_name'][12:]
+                filesInFolder = self.getFilesFromFolder(folder['id'])
+                self._print(str(folder['id']) + " " + courseFolderName if courseFolderName != '' else '/')
+                #self._print('\t'.join(list(map(lambda file: file['display_name'], filesInFolder))))
+                foldersArray.append({**folder, "files": filesInFolder})
+            self._print()
+            fileList.append({ "course": course, "folders": foldersArray })
+        return fileList
 
     def fetchCanvasAPI(self, apiPath : str):
         response = requests.get(
@@ -49,15 +62,14 @@ class Downloader:
     def fetchCourses(self):
         try:
             response = self.fetchCanvasAPI('courses')
-            print(response.url)
             if response.status_code == 200:
                 text = response.json()
                 return list(filter(lambda course : 'name' in course.keys() and course['name'] != None, text))
             else:
-                print(f"Could not fetch courses! HTTP status: {response.status_code}")
+                self._print(f"Could not fetch courses! HTTP status: {response.status_code}")
                 return []
         except Exception as e:
-            print("Failed to fetch! " + str(e))
+            self._print("Failed to fetch! " + str(e))
             return []
         
     def getCourseFolders(self, courseId : int):
@@ -67,10 +79,10 @@ class Downloader:
                 text = response.json()
                 return list(text)
             else:
-                print(f"Could not fetch folders from course ID {courseId}")
+                self._print(f"Could not fetch folders from course ID {courseId}")
                 return []
         except Exception as e:
-            print("Failed to fetch! " + str(e))
+            self._print("Failed to fetch! " + str(e))
             return []
 
     def getFilesFromFolder(self, folderId : int):
@@ -80,10 +92,10 @@ class Downloader:
                 text = response.json()
                 return list(text)
             else:
-                print(f"Could not fetch files from folder ID {folderId}")
+                self._print(f"Could not fetch files from folder ID {folderId}")
                 return []
         except Exception as e:
-            print("Failed to fetch! " + str(e))
+            self._print("Failed to fetch! " + str(e))
             return []
 
     def downloadFile(self, url : str):
@@ -91,7 +103,7 @@ class Downloader:
             response = requests.get(url)
             return response.content
         except:
-            print("Failed to download!")
+            self._print("Failed to download!")
             return None
 
     def download(self, fileList : list, root : str):
@@ -111,7 +123,7 @@ class Downloader:
 
             for folder in folders:
                 path = folder['full_name'][12:] if len(folder) > 12 else '/'
-                print(f"Processing {courseNameUsed}{path}...")
+                self._print(f"Processing {courseNameUsed}{path}...")
                 pathlib.Path(f"{root}/{courseNameUsed}{path}").mkdir(parents=True, exist_ok=True)
 
                 fileList = folder['files']
@@ -128,7 +140,7 @@ class Downloader:
                                 f.write(content)
                                 f.close()
                             else:
-                                print(f"File ID {file['id']} is already updated!")
+                                self._print(f"File ID {file['id']} is already updated!")
                             fileFoundInLoadedFiles = True
                             break
                     
@@ -155,8 +167,8 @@ class Downloader:
 
             for folder in folders:
                 path = folder['full_name'][12:] if len(folder) > 12 else '/'
-                print(f"Processing {root}/{courseNameUsed}{path}...")
+                self._print(f"Processing {root}/{courseNameUsed}{path}...")
 
                 fileList = folder['files']
                 for file in fileList:
-                    print(f"Downloaded file path: {root}/{courseNameUsed}{path}/{file['display_name']} from URL {file['url']}")
+                    self._print(f"Downloaded file path: {root}/{courseNameUsed}{path}/{file['display_name']} from URL {file['url']}")
