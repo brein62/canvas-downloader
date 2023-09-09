@@ -14,26 +14,31 @@ class color:
    UNDERLINE = '\033[4m'
    END = '\033[0m'
 
-def runDownloader(root : str, canvasUrl : str, canvasToken : str, displayArea : tk.Text = None):
+def runDownloader(root : str, canvasUrl : str, canvasToken : str, displayWindow : tk.Tk = None, displayArea : tk.Text = None):
 
     displayArea.delete(1.0, tk.END)
 
-    downloader = Downloader(canvasUrl, canvasToken, displayArea)
+    downloader = Downloader(canvasUrl, canvasToken, displayWindow, displayArea)
 
     fileList = downloader.loadFiles()
 
     downloader.download(fileList, root)
 
 class Downloader:
-    def __init__(self, canvasUrl : str, canvasToken : str, displayArea : tk.Text = None):
+    def __init__(self, canvasUrl : str, canvasToken : str, displayWindow : tk.Tk = None, displayArea : tk.Text = None):
         self.canvasUrl = canvasUrl
         self.canvasToken = canvasToken
+        self.displayWindow = displayWindow
         self.displayArea = displayArea
 
     def _print(self, content : str = ""):
         print(content)
-        if self.displayArea != None:
-            self.displayArea.insert(tk.END, content + "\n")
+        if self.displayWindow != None and self.displayArea != None:
+            if content.startswith(color.BOLD):
+                self.displayArea.insert(tk.END, content[4:-4] + "\n", "bold")
+            else:
+                self.displayArea.insert(tk.END, content + "\n")
+            self.displayWindow.update_idletasks()
 
     def loadFiles(self):
         fileList = []

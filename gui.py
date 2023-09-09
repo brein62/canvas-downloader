@@ -1,15 +1,19 @@
 import tkinter as tk
+import tkinter.ttk as ttk
 from downloader import runDownloader
+from RichText import RichText
 
 helv24b = ("Helvetica", "24", "bold")
 helv16b = ("Helvetica", "16", "bold")
 helv16 = ("Helvetica", "16")
+consolas = ("Consolas", "12")
 
 def _label(frame : tk.Frame, text : str, font : tuple = helv16b, width : int = 15, anchor : str = tk.E):
   return tk.Label(master=frame, text=text, width=width, anchor=anchor, font=font, bg="black", fg="white")
 
 def _entry(frame: tk.Frame, text : str, textvariable : tk.StringVar, show : str = ""):
-  return tk.Entry(master=frame, width=45, font=helv16, text=text, textvariable=textvariable, show=show, bg="black", highlightbackground="#808080", fg="white")
+  ttk.Style().configure('pad.TEntry', padding='5 1 1 1')
+  return ttk.Entry(master=frame, width=45, font=helv16, text=text, textvariable=textvariable, show=show, style="pad.TEntry") #, bg="black", highlightbackground="#808080", fg="white")
 
 def _loadValues():
   try:
@@ -43,8 +47,7 @@ def _onClose(values : list[str]):
 
 def runGui():
   window = tk.Tk()
-  window.geometry("600x500")  
-  window.configure(bg="black")
+  window.configure(bg="black", padx=20, pady=15)
   window.title("Canvas Downloader")
 
   frameIntroText = tk.Frame(master=window, borderwidth=1, bg="black")
@@ -77,10 +80,14 @@ def runGui():
 
   def downloadBtnClick():
     downloadBtn['state'] = tk.DISABLED
+    window.update_idletasks()
     downloadStatus.set("Downloading...")
-    runDownloader(v3.strip(), v1.strip(), v2.strip(), textDownloadInfo)
+    window.update_idletasks()
+    runDownloader(v3.strip(), v1.strip(), v2.strip(), window, textDownloadInfo)
     downloadStatus.set("Download")
+    window.update_idletasks()
     downloadBtn['state'] = tk.NORMAL
+    window.update_idletasks()
 
   labelIntroText = _label(frameIntroText, "Canvas Downloader", helv24b, 25, tk.CENTER)
   labelCanvasUrl = _label(frameCanvasUrl1, "Canvas URL: ")
@@ -89,8 +96,25 @@ def runGui():
   entryCanvasToken = _entry(frameCanvasToken2, text=v2, textvariable=sv2, show="\u2022")
   labelFilePath = _label(frameFilePath1, text="Canvas File Path: ")
   entryFilePath = _entry(frameFilePath2, text=v3, textvariable=sv3)
-  downloadBtn = tk.Button(master=frameDownloadBtn, textvariable=downloadStatus, font=helv16, command=downloadBtnClick, state=tk.NORMAL, highlightbackground="black", fg="#808080")
-  textDownloadInfo = tk.Text(master=frameDownloadInfo, height=20)
+  downloadBtn = tk.Button(
+      master=frameDownloadBtn,
+      textvariable=downloadStatus,
+      font=helv16, command=downloadBtnClick,
+      state=tk.NORMAL,
+      bg="#404040",
+      highlightbackground="#404040",
+      fg="white")
+  scrollDownloadInfo = tk.Scrollbar(master=frameDownloadInfo)
+  textDownloadInfo = RichText(
+    master=frameDownloadInfo,
+    bg="black", 
+    fg="white", 
+    height=20, 
+    yscrollcommand=scrollDownloadInfo.set)
+
+  textDownloadInfo.config(font=consolas)
+  scrollDownloadInfo.config(command=textDownloadInfo.yview)
+  scrollDownloadInfo.pack(side=tk.RIGHT, fill=tk.Y)
 
   sv1.trace_add("write", callback1)
   sv2.trace_add("write", callback2)
@@ -98,22 +122,23 @@ def runGui():
 
   frameIntroText.grid(row=0, column=0, padx=3, pady=4, columnspan=2)
   labelIntroText.pack(fill=tk.X)
-  frameCanvasUrl1.grid(row=1, column=0, padx=3, pady=2)
+  frameCanvasUrl1.grid(row=1, column=0, pady=2)
   frameCanvasUrl2.grid(row=1, column=1)
   labelCanvasUrl.pack(side="left")
   entryCanvasUrl.pack()
-  frameCanvasToken1.grid(row=2, column=0, padx=3, pady=2)
+  frameCanvasToken1.grid(row=2, column=0, pady=2)
   frameCanvasToken2.grid(row=2, column=1)
   labelCanvasToken.pack(side="left")
   entryCanvasToken.pack()
-  frameFilePath1.grid(row=3, column=0, padx=3, pady=2)
+  frameFilePath1.grid(row=3, column=0, pady=2)
   frameFilePath2.grid(row=3, column=1)
   labelFilePath.pack(side="left")
+  entryFilePath.pack_configure(padx=14)
   entryFilePath.pack()
-  frameDownloadBtn.grid(row=4, column=0, padx=3, pady=4, columnspan=2)
+  frameDownloadBtn.grid(row=4, column=0, pady=4, columnspan=2)
   downloadBtn.pack(fill=tk.X)
-  frameDownloadInfo.grid(row=5, column=0, padx=3, pady=4, columnspan=2)
-  textDownloadInfo.pack(fill=tk.X)
+  frameDownloadInfo.grid(row=5, column=0, pady=4, columnspan=2)
+  textDownloadInfo.pack(side=tk.LEFT)
 
   window.mainloop()
 
