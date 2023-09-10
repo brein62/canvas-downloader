@@ -12,7 +12,8 @@ def _label(frame : tk.Frame, text : str, font : tuple = helv16b, width : int = 1
   return tk.Label(master=frame, text=text, width=width, anchor=anchor, font=font, bg="black", fg="white")
 
 def _entry(frame: tk.Frame, text : str, textvariable : tk.StringVar, show : str = ""):
-  ttk.Style().configure('pad.TEntry', padding='5 1 1 1', background="black", foreground="white")
+  ttk.Style().theme_use('clam')
+  ttk.Style().configure('pad.TEntry', padding='5 1 1 1', fieldbackground="#d0d0d0", background="#d0d0d0", foreground="black")
   return ttk.Entry(
     master=frame, 
     width=45, 
