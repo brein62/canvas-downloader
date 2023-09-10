@@ -12,8 +12,15 @@ def _label(frame : tk.Frame, text : str, font : tuple = helv16b, width : int = 1
   return tk.Label(master=frame, text=text, width=width, anchor=anchor, font=font, bg="black", fg="white")
 
 def _entry(frame: tk.Frame, text : str, textvariable : tk.StringVar, show : str = ""):
-  ttk.Style().configure('pad.TEntry', padding='5 1 1 1')
-  return ttk.Entry(master=frame, width=45, font=helv16, text=text, textvariable=textvariable, show=show, style="pad.TEntry") #, bg="black", highlightbackground="#808080", fg="white")
+  ttk.Style().configure('pad.TEntry', padding='5 1 1 1', background="black", foreground="white")
+  return ttk.Entry(
+    master=frame, 
+    width=45, 
+    font=helv16,
+    text=text, 
+    textvariable=textvariable, 
+    show=show, 
+    style="pad.TEntry") #, bg="black", highlightbackground="#808080", fg="white")
 
 def _loadValues():
   try:
@@ -57,7 +64,7 @@ def runGui():
   frameCanvasToken2 = tk.Frame(master=window, borderwidth=1, bg="black")
   frameFilePath1 = tk.Frame(master=window, borderwidth=1, bg="black")
   frameFilePath2 = tk.Frame(master=window, borderwidth=1, bg="black")
-  frameDownloadBtn = tk.Frame(master=window, borderwidth=1, bg="black")
+  frameDownloadBtn = tk.Frame(master=window, borderwidth=1)
   frameDownloadInfo = tk.Frame(master=window, borderwidth=1, bg="black")
 
   v1, v2, v3 = _loadValues()
@@ -100,10 +107,8 @@ def runGui():
       master=frameDownloadBtn,
       textvariable=downloadStatus,
       font=helv16, command=downloadBtnClick,
-      state=tk.NORMAL,
-      bg="#404040",
-      highlightbackground="#404040",
-      fg="white")
+      fg="black",
+      state=tk.NORMAL)
   scrollDownloadInfo = tk.Scrollbar(master=frameDownloadInfo)
   textDownloadInfo = RichText(
     master=frameDownloadInfo,
