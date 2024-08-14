@@ -114,8 +114,10 @@ class Downloader:
     def download(self, fileList : list, root : str):
         """Downloads the files within the file list one-by-one, and saves into the folder specified by the root directory."""
 
+        fileLogLocation = f'{root}/.files'
+
         try:
-            fileLog = open('.files', 'r')
+            fileLog = open(fileLogLocation, 'r')
             loadedFiles = fileLog.readlines()
             fileLog.close()
         except:
@@ -142,10 +144,12 @@ class Downloader:
                                 loadedFiles[i] = file['uuid'] + " " + file['modified_at'] + '\n'
                                 content = self.downloadFile(file['url'])
                                 f = open(f"{root}/{courseNameUsed}{path}/{file['display_name']}", "wb")
-                                f.write(content)
+                                if content != None:
+                                    f.write(content)
                                 f.close()
+                                self._print(f"Updated file ID {file['id']}")
                             else:
-                                self._print(f"File ID {file['id']} is already updated!")
+                                self._print(f"No updates required for file ID {file['id']}")
                             fileFoundInLoadedFiles = True
                             break
                     
@@ -153,10 +157,12 @@ class Downloader:
                         loadedFiles.append(file['uuid'] + " " + file['modified_at'] + '\n')
                         content = self.downloadFile(file['url'])
                         f = open(f"{root}/{courseNameUsed}{path}/{file['display_name']}", "wb")
-                        f.write(content)
+                        if content != None:
+                            f.write(content)
                         f.close()
+                        self._print(f"Added file ID {file['id']}")
 
-        fileLog = open('.files', 'w')
+        fileLog = open(fileLogLocation, 'w')
         for i in range(len(loadedFiles) - 1):
             if not loadedFiles[i].endswith('\n'): 
                 loadedFiles[i] += '\n'
