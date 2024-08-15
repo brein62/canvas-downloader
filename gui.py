@@ -8,10 +8,38 @@ helv16b = ("Helvetica", "16", "bold")
 helv16 = ("Helvetica", "16")
 consolas = ("Consolas", "12")
 
-def _label(frame : tk.Frame, text : str, font : tuple = helv16b, width : int = 15, anchor : str = tk.E):
+def _label(frame : tk.Frame, text : str, font : tuple = helv16b, width : int = 15, anchor : str = tk.E) -> tk.Label:
+  """Creates the customised label to be used in the GUI.
+
+  Args:
+      frame (tk.Frame): The master/parent frame this `ttk.Entry` widget will be located in.
+      text (str): The content of the label.
+      font (tuple, optional): The font to be used for the label. Defaults to helv16b.
+      width (int, optional): The width of the label. Defaults to 15.
+      anchor (str, optional): Where to anchor the label in the GUI. Defaults to tk.E.
+
+  Returns:
+      tk.Label: The customised label to be used in the GUI.
+  """
   return tk.Label(master=frame, text=text, width=width, anchor=anchor, font=font, bg="black", fg="white")
 
-def _entry(frame: tk.Frame, text : str, textvariable : tk.StringVar, show : str = ""):
+def _entry(frame: tk.Frame, text : str, textvariable : tk.StringVar, show : str = "") -> ttk.Entry:
+  """Creates the customised TKinter `ttk.Entry` widget (text box) to be used in the GUI.
+
+  Args:
+      frame (tk.Frame): The master/parent frame this `ttk.Entry` widget will be located in.
+
+      text (str): The initial content of the text box.
+
+      textvariable (tk.StringVar): The `tk.StringVar` instance to store the content of the text box into,
+      to be used within the application.
+
+      show (str, optional): The character to show in place of the individual characters. This can be used
+      to create password inputs by setting `show` to `\\u2022` (a centred dot). Defaults to "".
+
+  Returns:
+      Entry: The `ttk.Entry` text box instance created by the application.
+  """
   ttk.Style().theme_use('clam')
   ttk.Style().configure('pad.TEntry', padding='5 1 1 1', fieldbackground="#d0d0d0", background="#d0d0d0", foreground="black")
   return ttk.Entry(
@@ -24,6 +52,12 @@ def _entry(frame: tk.Frame, text : str, textvariable : tk.StringVar, show : str 
     style="pad.TEntry") #, bg="black", highlightbackground="#808080", fg="white")
 
 def _loadValues():
+  """Loads the values from local storage (`.values` file) when the application is opened (if they exist).
+  If values do not exist, the value will be represented as blank for users to enter in the GUI.
+
+  Returns:
+      list[str]: A list of [Canvas URL, Canvas API token, Local file save location] to be loaded.
+  """
   try:
     f = open(".values", "r")
     lines = f.readlines()
@@ -43,6 +77,13 @@ def _loadValues():
     return ["", "", ""]
   
 def _onClose(values : list[str]):
+  """Handles the saving of values into local storage (`.values` file) when the application is closed.
+  This ensures that users do not need to re-enter the Canvas API information as the app will automatically
+  populate the values currently in the `.values` file on re-open (in `_loadValues()`).
+
+  Args:
+      values (list[str]): A list of [Canvas URL, Canvas API token, Local file save location]
+  """
   try:
     f = open(".values", "w")
     for i in range(2):
@@ -54,6 +95,8 @@ def _onClose(values : list[str]):
     print("Could not save settings!")
 
 def runGui():
+  """Runs the main GUI of the application by rendering a new TKinter window with the necessary form fields.
+  """
   window = tk.Tk()
   window.configure(bg="black", padx=20, pady=15)
   window.title("Canvas Downloader")
@@ -68,6 +111,9 @@ def runGui():
   frameDownloadBtn = tk.Frame(master=window, borderwidth=1)
   frameDownloadInfo = tk.Frame(master=window, borderwidth=1, bg="black")
 
+  # v1 represents the Canvas URL
+  # v2 represents the Canvas API token
+  # v3 represents the location of the Canvas files on your local machine
   v1, v2, v3 = _loadValues()
   sv1 = tk.StringVar(value=v1.strip())
   sv2 = tk.StringVar(value=v2.strip())
@@ -87,6 +133,8 @@ def runGui():
     v3 = sv3.get()
 
   def downloadBtnClick():
+    """Handles the click event of the download button (`downloadBtn`).
+    """
     downloadBtn['state'] = tk.DISABLED
     window.update_idletasks()
     downloadStatus.set("Downloading...")

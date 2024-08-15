@@ -1,20 +1,52 @@
 import requests
 import pathlib
 import tkinter as tk
+import os
+
+os.system("")
+
+"""
+File lists are currently being processed in the following JSON format:
+[
+    {
+        "courses": course_name,
+        "folders": [
+            {
+                /* folder data from Canvas API */,
+                "files": [
+                    /* file data from Canvas API */
+                ]
+            },
+            ...
+        ]
+    },
+    ...
+]
+"""
 
 class color:
-   PURPLE = '\033[95m'
-   CYAN = '\033[96m'
-   DARKCYAN = '\033[36m'
-   BLUE = '\033[94m'
-   GREEN = '\033[92m'
-   YELLOW = '\033[93m'
-   RED = '\033[91m'
-   BOLD = '\033[1m'
-   UNDERLINE = '\033[4m'
-   END = '\033[0m'
+    """The colour constants to be used for this application."""
+    PURPLE = '\033[95m'
+    CYAN = '\033[96m'
+    DARKCYAN = '\033[36m'
+    BLUE = '\033[94m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    RED = '\033[91m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+    END = '\033[0m'
 
 def runDownloader(root : str, canvasUrl : str, canvasToken : str, displayWindow : tk.Tk = None, displayArea : tk.Text = None):
+    """Runs the downloader in the GUI.
+
+    Args:
+        root (str): The root directory to save the files downloaded into.
+        canvasUrl (str): The Canvas URL.
+        canvasToken (str): The user's Canvas token.
+        displayWindow (tk.Tk, optional): The GUI window for the entire application. Defaults to None.
+        displayArea (tk.Text, optional): The text area (`tk.Text`) to display the status of the download operation. Defaults to None.
+    """
 
     displayArea.delete(1.0, tk.END)
 
@@ -25,6 +57,8 @@ def runDownloader(root : str, canvasUrl : str, canvasToken : str, displayWindow 
     downloader.download(fileList, root)
 
 class Downloader:
+    """A class representing a Canvas file downloader."""
+
     def __init__(self, canvasUrl : str, canvasToken : str, displayWindow : tk.Tk = None, displayArea : tk.Text = None):
         self.canvasUrl = canvasUrl
         self.canvasToken = canvasToken
@@ -32,6 +66,12 @@ class Downloader:
         self.displayArea = displayArea
 
     def _print(self, content : str = ""):
+        """Prints a status line regarding the Canvas file download process in the console as well as in the
+        textarea within the GUI.
+
+        Args:
+            content (str, optional): The content to be displayed. Defaults to "".
+        """
         print(content)
         if self.displayWindow != None and self.displayArea != None:
             if content.startswith(color.BOLD):
@@ -40,7 +80,14 @@ class Downloader:
                 self.displayArea.insert(tk.END, content + "\n")
             self.displayWindow.update_idletasks()
 
-    def loadFiles(self):
+    def loadFiles(self) -> list:
+        """Gets the courses and files and organises the files to download in a JSON format.
+
+        Returns:
+            list: The list of files, organised by course and folder in a JSON format.
+        """
+        self._print(color.BOLD + f"Retrieving files from courses:" + color.END)
+        self._print()
         fileList = []
         for course in self.fetchCourses():
             self._print(color.BOLD + f"Course: {course['name']} ({course['course_code']})" + color.END)
@@ -55,7 +102,16 @@ class Downloader:
             fileList.append({ "course": course, "folders": foldersArray })
         return fileList
 
-    def fetchCanvasAPI(self, apiPath : str):
+    def fetchCanvasAPI(self, apiPath : str) -> requests.Response:
+        """Sends a `GET` request to a path within the Canvas API given the Canvas token, and returns
+        the response received from the Canvas API.
+
+        Args:
+            apiPath (str): The API path within the Canvas API.
+
+        Returns:
+            requests.Response: The response received from the Canvas API request made.
+        """
         response = requests.get(
             f"{self.canvasUrl}/api/v1/{apiPath}?per_page=1000&access_token={self.canvasToken}",
             headers={
@@ -64,7 +120,12 @@ class Downloader:
         )
         return response
 
-    def fetchCourses(self):
+    def fetchCourses(self) -> list:
+        """Fetches the user's courses as a JSON list.
+
+        Returns:
+            list: The list of courses by the user, in JSON format.
+        """
         try:
             response = self.fetchCanvasAPI('courses')
             if response.status_code == 200:
@@ -77,7 +138,15 @@ class Downloader:
             self._print("Failed to fetch! " + str(e))
             return []
         
-    def getCourseFolders(self, courseId : int):
+    def getCourseFolders(self, courseId : int) -> list:
+        """Fetches the folders in a course's files given the course ID.
+
+        Args:
+            courseId (int): The course ID to fetch the folders from.
+
+        Returns:
+            list: The list of folders in the specific course's files, in JSON format.
+        """
         try:
             response = self.fetchCanvasAPI(f'courses/{courseId}/folders')
             if response.status_code == 200:
@@ -90,7 +159,15 @@ class Downloader:
             self._print("Failed to fetch! " + str(e))
             return []
 
-    def getFilesFromFolder(self, folderId : int):
+    def getFilesFromFolder(self, folderId : int) -> list:
+        """Fetches the files within a specified folder given the folder ID.
+
+        Args:
+            folderId (int): The folder ID to fetch the files from.
+
+        Returns:
+            list: The list of files in the specified folder, in JSON format.
+        """
         try:
             response = self.fetchCanvasAPI(f'folders/{folderId}/files')
             if response.status_code == 200:
@@ -104,6 +181,14 @@ class Downloader:
             return []
 
     def downloadFile(self, url : str):
+        """Downloads a file by sending a `GET` request to the file and retrieving its content.
+
+        Args:
+            url (str): The URL to download the file from.
+
+        Returns:
+            The content of the file.
+        """
         try:
             response = requests.get(url)
             return response.content
@@ -112,8 +197,14 @@ class Downloader:
             return None
 
     def download(self, fileList : list, root : str):
-        """Downloads the files within the file list one-by-one, and saves into the folder specified by the root directory."""
+        """Downloads the files within the file list one-by-one, and saves into the folder specified by the root directory.
 
+        Args:
+            fileList (list): The list of files to download, organised by course and folder as returned by `loadFiles`.
+            root (str): The root directory to save the files downloaded into.
+        """
+
+        self._print(color.BOLD + f"Downloading files:" + color.END)
         fileLogLocation = f'{root}/.files'
 
         try:
@@ -127,6 +218,9 @@ class Downloader:
             course = courses['course']
             folders = courses['folders']
             courseNameUsed = course['course_code'].replace('/', '')
+            
+            self._print()
+            self._print(color.BOLD + f"Course: {course['name']} ({course['course_code']})" + color.END)
 
             for folder in folders:
                 path = folder['full_name'][12:] if len(folder) > 12 else '/'
@@ -168,18 +262,3 @@ class Downloader:
                 loadedFiles[i] += '\n'
         fileLog.writelines(loadedFiles)
         fileLog.close()
-
-    def download_test(self, fileList : list, root : str):
-        """Simulates a downloader without performing the full and slow process of downloading the files."""
-        for courses in fileList:
-            course = courses['course']
-            folders = courses['folders']
-            courseNameUsed = course['course_code'].replace('/', '')
-
-            for folder in folders:
-                path = folder['full_name'][12:] if len(folder) > 12 else '/'
-                self._print(f"Processing {root}/{courseNameUsed}{path}...")
-
-                fileList = folder['files']
-                for file in fileList:
-                    self._print(f"Downloaded file path: {root}/{courseNameUsed}{path}/{file['display_name']} from URL {file['url']}")
