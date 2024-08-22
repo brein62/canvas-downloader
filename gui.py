@@ -1,3 +1,8 @@
+"""Module that runs the primary graphical user interface (GUI) of the Canvas downloader
+application.
+"""
+
+import threading
 import tkinter as tk
 import tkinter.ttk as ttk
 from downloader import runDownloader
@@ -139,11 +144,16 @@ def runGui():
     window.update_idletasks()
     downloadStatus.set("Downloading...")
     window.update_idletasks()
-    runDownloader(v3.strip(), v1.strip(), v2.strip(), window, textDownloadInfo)
-    downloadStatus.set("Download")
-    window.update_idletasks()
-    downloadBtn['state'] = tk.NORMAL
-    window.update_idletasks()
+    def run():
+      runDownloader(v3.strip(), v1.strip(), v2.strip(), window, textDownloadInfo)
+      downloadStatus.set("Download")
+      window.update_idletasks()
+      downloadBtn['state'] = tk.NORMAL
+      window.update_idletasks()
+
+    # run the download operation in a separate thread to ensure GUI doesn't freeze
+    # during the download process
+    threading.Thread(target=run).start()
 
   labelIntroText = _label(frameIntroText, "Canvas Downloader", helv24b, 25, tk.CENTER)
   labelCanvasUrl = _label(frameCanvasUrl1, "Canvas URL: ")
