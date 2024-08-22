@@ -6,7 +6,7 @@ Downloads files from Canvas straight to your computer, into a directory you spec
 
 ## Initialising the app
 
-1. You need Python 3.5 and above installed on your computer.
+1. You need Python 3.8 and above installed on your computer.
 2. In the terminal, run the command ```pip install requests``` and ```pip install python-dotenv``` to install this application's dependencies.
 3. You should be able to run the app now!
 

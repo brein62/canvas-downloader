@@ -1,3 +1,8 @@
+"""Module that runs the primary graphical user interface (GUI) of the Canvas downloader
+application.
+"""
+
+import threading
 import tkinter as tk
 import tkinter.ttk as ttk
 from downloader import runDownloader
@@ -12,14 +17,14 @@ def _label(frame : tk.Frame, text : str, font : tuple = helv16b, width : int = 1
   """Creates the customised label to be used in the GUI.
 
   Args:
-      frame (tk.Frame): The master/parent frame this `ttk.Entry` widget will be located in.
-      text (str): The content of the label.
-      font (tuple, optional): The font to be used for the label. Defaults to helv16b.
-      width (int, optional): The width of the label. Defaults to 15.
-      anchor (str, optional): Where to anchor the label in the GUI. Defaults to tk.E.
+    frame (tk.Frame): The master/parent frame this `ttk.Entry` widget will be located in.
+    text (str): The content of the label.
+    font (tuple, optional): The font to be used for the label. Defaults to helv16b.
+    width (int, optional): The width of the label. Defaults to 15.
+    anchor (str, optional): Where to anchor the label in the GUI. Defaults to tk.E.
 
   Returns:
-      tk.Label: The customised label to be used in the GUI.
+    tk.Label: The customised label to be used in the GUI.
   """
   return tk.Label(master=frame, text=text, width=width, anchor=anchor, font=font, bg="black", fg="white")
 
@@ -27,18 +32,18 @@ def _entry(frame: tk.Frame, text : str, textvariable : tk.StringVar, show : str 
   """Creates the customised TKinter `ttk.Entry` widget (text box) to be used in the GUI.
 
   Args:
-      frame (tk.Frame): The master/parent frame this `ttk.Entry` widget will be located in.
+    frame (tk.Frame): The master/parent frame this `ttk.Entry` widget will be located in.
 
-      text (str): The initial content of the text box.
+    text (str): The initial content of the text box.
 
-      textvariable (tk.StringVar): The `tk.StringVar` instance to store the content of the text box into,
-      to be used within the application.
+    textvariable (tk.StringVar): The `tk.StringVar` instance to store the content of the text box into,
+    to be used within the application.
 
-      show (str, optional): The character to show in place of the individual characters. This can be used
-      to create password inputs by setting `show` to `\\u2022` (a centred dot). Defaults to "".
+    show (str, optional): The character to show in place of the individual characters. This can be used
+    to create password inputs by setting `show` to `\\u2022` (a centred dot). Defaults to "".
 
   Returns:
-      Entry: The `ttk.Entry` text box instance created by the application.
+    Entry: The `ttk.Entry` text box instance created by the application.
   """
   ttk.Style().theme_use('clam')
   ttk.Style().configure('pad.TEntry', padding='5 1 1 1', fieldbackground="#d0d0d0", background="#d0d0d0", foreground="black")
@@ -56,7 +61,7 @@ def _loadValues():
   If values do not exist, the value will be represented as blank for users to enter in the GUI.
 
   Returns:
-      list[str]: A list of [Canvas URL, Canvas API token, Local file save location] to be loaded.
+    list[str]: A list of [Canvas URL, Canvas API token, Local file save location] to be loaded.
   """
   try:
     f = open(".values", "r")
@@ -82,7 +87,7 @@ def _onClose(values : list[str]):
   populate the values currently in the `.values` file on re-open (in `_loadValues()`).
 
   Args:
-      values (list[str]): A list of [Canvas URL, Canvas API token, Local file save location]
+    values (list[str]): A list of [Canvas URL, Canvas API token, Local file save location]
   """
   try:
     f = open(".values", "w")
@@ -139,11 +144,16 @@ def runGui():
     window.update_idletasks()
     downloadStatus.set("Downloading...")
     window.update_idletasks()
-    runDownloader(v3.strip(), v1.strip(), v2.strip(), window, textDownloadInfo)
-    downloadStatus.set("Download")
-    window.update_idletasks()
-    downloadBtn['state'] = tk.NORMAL
-    window.update_idletasks()
+    def run():
+      runDownloader(v3.strip(), v1.strip(), v2.strip(), window, textDownloadInfo)
+      downloadStatus.set("Download")
+      window.update_idletasks()
+      downloadBtn['state'] = tk.NORMAL
+      window.update_idletasks()
+
+    # run the download operation in a separate thread to ensure GUI doesn't freeze
+    # during the download process
+    threading.Thread(target=run).start()
 
   labelIntroText = _label(frameIntroText, "Canvas Downloader", helv24b, 25, tk.CENTER)
   labelCanvasUrl = _label(frameCanvasUrl1, "Canvas URL: ")
