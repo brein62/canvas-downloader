@@ -133,6 +133,7 @@ class Folder:
     Args:
       id (int): The ID of the folder, from the Canvas API.
       full_name (str): The full name (path) of the folder.
+      files (list[File]): The list of files within the folder (as a list of File objects).
     """
     self.id = id
     self.full_name = full_name
