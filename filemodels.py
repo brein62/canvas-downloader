@@ -10,7 +10,12 @@ be saved and loaded from locally-stored file logs (`.files`).
 """
 
 import requests
-from typing_extensions import Self
+import sys
+
+if sys.version_info < (3, 10):
+  from typing_extensions import Self
+else:
+  from typing import Self
      
 class File:
   """

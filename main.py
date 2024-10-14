@@ -2,7 +2,7 @@
 
 import os
 from downloader import Downloader
-from gui import runGui
+from gui.mainwindow import runGui
 
 from dotenv import load_dotenv
 
