@@ -6,7 +6,7 @@ import pathlib
 import tkinter as tk
 import os
 
-from RichText import RichText
+from richtext import RichText
 from filemodels import Course, File, FileLog, Folder
 
 os.system("")
@@ -24,41 +24,38 @@ class color:
   UNDERLINE = '\033[4m'
   END = '\033[0m'
 
-def runDownloader(root : str, canvasUrl : str, canvasToken : str, displayWindow : tk.Tk = None, displayArea : tk.Text = None):
-  """Runs the downloader in the GUI.
-
-  Args:
-  root (str): The root directory to save the files downloaded into.
-  canvasUrl (str): The Canvas URL.
-  canvasToken (str): The user's Canvas token.
-  displayWindow (tk.Tk, optional): The GUI window for the entire application. Defaults to None.
-  displayArea (tk.Text, optional): The text area (`tk.Text`) to display the status of the download operation. Defaults to None.
-  """
-
-  displayArea.delete(1.0, tk.END)
-
-  downloader = Downloader(canvasUrl, canvasToken, displayWindow, displayArea)
-
-  courseListWithFiles = downloader.loadFiles()
-
-  downloader.download(courseListWithFiles, root)
-
 class Downloader:
   """A class representing a Canvas file downloader."""
 
-  def __init__(self, canvasUrl : str, canvasToken : str, displayWindow : tk.Tk = None, displayArea : RichText = None):
+  def __init__(self, root : str, canvasUrl : str, canvasToken : str, filters : list[str], displayWindow : tk.Tk = None, displayArea : RichText = None):
     """Creates a Canvas file downloader object.
 
     Args:
+      root (str): The root directory to save the files downloaded into.
       canvasUrl (str): The Canvas URL to access the API using.
       canvasToken (str): The Canvas Token used to access the Canvas API.
+      filters (list[str]): The list of course codes to download. If left empty, downloads all courses.
       displayWindow (tk.Tk, optional): The display window for the GUI. Defaults to None.
       displayArea (RichText, optional): The display text area GUI to display the download status onto. Defaults to None.
     """
+    self.root = root
     self.canvasUrl = canvasUrl
     self.canvasToken = canvasToken
+    self.filters = filters
     self.displayWindow = displayWindow
     self.displayArea = displayArea
+
+  def _isFilterEmpty(self):
+    """Checks whether the course filters are left blank. If so, all courses should be downloaded.
+
+    Returns:
+      bool: True if course filters are blank, False otherwise.
+    """
+
+    # remove all filters that are whitespace
+    processedFilters = list(filter(lambda x : x.strip() != '', self.filters))
+
+    return (len(processedFilters) == 0)
 
   def _print(self, content : str = ""):
     """Prints a status line regarding the Canvas file download process in the console as well as in the
@@ -101,15 +98,16 @@ class Downloader:
     self._print()
     courseListWithFiles : list[Course] = []
     for course in self.fetchCourses():
-      self._print(color.BOLD + f"Course: {course.name} ({course.course_code})" + color.END)
-      foldersArray : list[Folder] = []
-      for folder in self.getCourseFolders(course.id):
-        courseFolderName = folder.getPath()
-        filesInFolder = self.getFilesFromFolder(folder.id)
-        self._print(f"{folder.id} {courseFolderName}")
-        foldersArray.append(folder.withFiles(filesInFolder))
-      self._print()
-      courseListWithFiles.append(course.withFolders(foldersArray))
+      if course.course_code in self.filters or self._isFilterEmpty():
+        self._print(color.BOLD + f"Course: {course.name} ({course.course_code})" + color.END)
+        foldersArray : list[Folder] = []
+        for folder in self.getCourseFolders(course.id):
+          courseFolderName = folder.getPath()
+          filesInFolder = self.getFilesFromFolder(folder.id)
+          self._print(f"{folder.id} {courseFolderName}")
+          foldersArray.append(folder.withFiles(filesInFolder))
+        self._print()
+        courseListWithFiles.append(course.withFolders(foldersArray))
     return courseListWithFiles
 
   def fetchCanvasAPI(self, apiPath : str) -> requests.Response:
@@ -190,17 +188,16 @@ class Downloader:
       self._print("Failed to fetch! " + str(e))
       return []
 
-  def download(self, courseListWithFiles : list[Course], root : str):
+  def download(self, courseListWithFiles : list[Course]):
     """Downloads the files within the file list one-by-one, and saves into the folder specified by the root directory.
 
     Args:
       courseListWithFiles (list): The list of files to download, organised by course and folder as a list of course objects containing the folders and files to download.
-      root (str): The root directory to save the files downloaded into.
     """
 
     self._print(color.UNDERLINE + color.BOLD + f"Downloading files:" + color.END)
-    pathlib.Path(f"{root}").mkdir(parents=True, exist_ok=True)
-    fileLogLocation = f'{root}/.files'
+    pathlib.Path(f"{self.root}").mkdir(parents=True, exist_ok=True)
+    fileLogLocation = f'{self.root}/.files'
 
     fileLog = FileLog.fromFileLog(fileLogLocation)
 
@@ -214,7 +211,7 @@ class Downloader:
       for folder in folders:
         path = folder.getPath()
         self._print(f"Processing {courseNameUsed}{path}...")
-        pathlib.Path(f"{root}/{courseNameUsed}{path}").mkdir(parents=True, exist_ok=True)
+        pathlib.Path(f"{self.root}/{courseNameUsed}{path}").mkdir(parents=True, exist_ok=True)
 
         fileList = folder.files
         for file in fileList:
@@ -223,14 +220,14 @@ class Downloader:
               self._print(f"{color.YELLOW}No updates required for file ID {file.id}: {file.display_name}{color.END}")
             else:
               fileLog.update(file.uuid, file.modified_at)
-              downloadStatus = file.download(f"{root}/{courseNameUsed}{path}")
+              downloadStatus = file.download(f"{self.root}/{courseNameUsed}{path}")
               if downloadStatus:
                 self._print(f"{color.GREEN}Updated file ID {file.id}: {file.display_name}{color.END}")
               else:
                 self._print("Failed to download!")
           else:
             fileLog.append(file.uuid, file.modified_at)
-            downloadStatus = file.download(f"{root}/{courseNameUsed}{path}")
+            downloadStatus = file.download(f"{self.root}/{courseNameUsed}{path}")
             if downloadStatus:
               self._print(f"{color.GREEN}Added file ID {file.id}: {file.display_name}{color.END}")
             else:
@@ -238,3 +235,12 @@ class Downloader:
     fileLog.saveToFileLog(fileLogLocation)
     self._print()
     self._print(color.GREEN + color.BOLD + f"Download complete" + color.END)
+
+  def run(self):
+    """
+    Runs the current downloader by loading the courses/folders/files, then downloading the files loaded.
+    """
+
+    self.displayArea.delete(1.0, tk.END)
+    courseListWithFiles = self.loadFiles()
+    self.download(courseListWithFiles)

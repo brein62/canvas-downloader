@@ -5,81 +5,37 @@ application.
 import threading
 import tkinter as tk
 import tkinter.ttk as ttk
-from downloader import runDownloader
-from RichText import RichText
-
-helv24b = ("Helvetica", "24", "bold")
-helv16b = ("Helvetica", "16", "bold")
-helv16 = ("Helvetica", "16")
-consolas = ("Consolas", "12")
-
-def _label(frame : tk.Frame, text : str, font : tuple = helv16b, width : int = 15, anchor : str = tk.E) -> tk.Label:
-  """Creates the customised label to be used in the GUI.
-
-  Args:
-    frame (tk.Frame): The master/parent frame this `ttk.Entry` widget will be located in.
-    text (str): The content of the label.
-    font (tuple, optional): The font to be used for the label. Defaults to helv16b.
-    width (int, optional): The width of the label. Defaults to 15.
-    anchor (str, optional): Where to anchor the label in the GUI. Defaults to tk.E.
-
-  Returns:
-    tk.Label: The customised label to be used in the GUI.
-  """
-  return tk.Label(master=frame, text=text, width=width, anchor=anchor, font=font, bg="black", fg="white")
-
-def _entry(frame: tk.Frame, text : str, textvariable : tk.StringVar, show : str = "") -> ttk.Entry:
-  """Creates the customised TKinter `ttk.Entry` widget (text box) to be used in the GUI.
-
-  Args:
-    frame (tk.Frame): The master/parent frame this `ttk.Entry` widget will be located in.
-
-    text (str): The initial content of the text box.
-
-    textvariable (tk.StringVar): The `tk.StringVar` instance to store the content of the text box into,
-    to be used within the application.
-
-    show (str, optional): The character to show in place of the individual characters. This can be used
-    to create password inputs by setting `show` to `\\u2022` (a centred dot). Defaults to "".
-
-  Returns:
-    Entry: The `ttk.Entry` text box instance created by the application.
-  """
-  ttk.Style().theme_use('clam')
-  ttk.Style().configure('pad.TEntry', padding='5 1 1 1', fieldbackground="#d0d0d0", background="#d0d0d0", foreground="black")
-  return ttk.Entry(
-    master=frame, 
-    width=45, 
-    font=helv16,
-    text=text, 
-    textvariable=textvariable, 
-    show=show, 
-    style="pad.TEntry") #, bg="black", highlightbackground="#808080", fg="white")
+from downloader import Downloader
+from richtext import RichText
+from gui.components import entry, Font, label
+from gui.coursefilters import CourseFilterWindow
 
 def _loadValues():
   """Loads the values from local storage (`.values` file) when the application is opened (if they exist).
   If values do not exist, the value will be represented as blank for users to enter in the GUI.
 
   Returns:
-    list[str]: A list of [Canvas URL, Canvas API token, Local file save location] to be loaded.
+    list[str]: A list of [Canvas URL, Canvas API token, Local file save location, Course filters] to be loaded.
   """
   try:
     f = open(".values", "r")
     lines = f.readlines()
     f.close()
     print(lines)
-    if len(lines) == 3:
+    if len(lines) == 4:
       return lines
+    elif len(lines) == 3:
+      return [lines[0], lines[1], lines[2], ""]
     elif len(lines) == 2:
-      return [lines[0], lines[1], ""]
+      return [lines[0], lines[1], "", ""]
     elif len(lines) == 1:
-      return [lines[0], "", ""]
+      return [lines[0], "", "", ""]
     elif len(lines) == 0:
-      return ["", "", ""]
+      return ["", "", "", ""]
     else:
-      return lines[:3]
+      return lines[:4]
   except:
-    return ["", "", ""]
+    return ["", "", "", ""]
   
 def _onClose(values : list[str]):
   """Handles the saving of values into local storage (`.values` file) when the application is closed.
@@ -87,11 +43,11 @@ def _onClose(values : list[str]):
   populate the values currently in the `.values` file on re-open (in `_loadValues()`).
 
   Args:
-    values (list[str]): A list of [Canvas URL, Canvas API token, Local file save location]
+    values (list[str]): A list of [Canvas URL, Canvas API token, Local file save location, Course filters]
   """
   try:
     f = open(".values", "w")
-    for i in range(2):
+    for i in range(3):
       if not values[i].endswith('\n'): 
         values[i] += '\n'
     f.writelines(values)
@@ -106,6 +62,8 @@ def runGui():
   window.configure(bg="black", padx=20, pady=15)
   window.title("Canvas Downloader")
 
+  # the frame variables ending with 1 represent the frame for the 1st column,
+  # 2 represents the frame for the 2nd column.
   frameIntroText = tk.Frame(master=window, borderwidth=1, bg="black")
   frameCanvasUrl1 = tk.Frame(master=window, borderwidth=1, bg="black")  
   frameCanvasUrl2 = tk.Frame(master=window, borderwidth=1, bg="black")  
@@ -113,31 +71,45 @@ def runGui():
   frameCanvasToken2 = tk.Frame(master=window, borderwidth=1, bg="black")
   frameFilePath1 = tk.Frame(master=window, borderwidth=1, bg="black")
   frameFilePath2 = tk.Frame(master=window, borderwidth=1, bg="black")
+  frameCourseFilters1 = tk.Frame(master=window, borderwidth=1, bg="black")
+  frameCourseFilters2 = tk.Frame(master=window, borderwidth=1, bg="black")
   frameDownloadBtn = tk.Frame(master=window, borderwidth=1)
   frameDownloadInfo = tk.Frame(master=window, borderwidth=1, bg="black")
 
   # v1 represents the Canvas URL
   # v2 represents the Canvas API token
   # v3 represents the location of the Canvas files on your local machine
-  v1, v2, v3 = _loadValues()
+  # v4 represents the comma-separated course filters for the Canvas downloader.
+  v1, v2, v3, v4 = _loadValues()
+  sv4Display = tk.StringVar(value=v4 if v4 != "" else "All courses")
   sv1 = tk.StringVar(value=v1.strip())
   sv2 = tk.StringVar(value=v2.strip())
   sv3 = tk.StringVar(value=v3.strip())
+  sv4 = tk.StringVar(value=v4.strip())
   downloadStatus = tk.StringVar(value="Download")
 
   def callback1(var, index, mode):
-    nonlocal v1
+    nonlocal v1, downloader
     v1 = sv1.get()
+    downloader.canvasUrl = v1
 
   def callback2(var, index, mode):
-    nonlocal v2
+    nonlocal v2, downloader
     v2 = sv2.get()  
+    downloader.canvasToken = v2
     
   def callback3(var, index, mode):
-    nonlocal v3
+    nonlocal v3, downloader
     v3 = sv3.get()
+    downloader.root = v3
+    
+  def callback4(var, index, mode):
+    nonlocal v4
+    v4 = sv4.get()
+    sv4Display.set(sv4.get() if sv4.get() != "" else "All courses")
+    downloader.filters = v4.strip().split(", ")
 
-  def downloadBtnClick():
+  def downloadBtnClick(downloader : Downloader):
     """Handles the click event of the download button (`downloadBtn`).
     """
     downloadBtn['state'] = tk.DISABLED
@@ -145,7 +117,7 @@ def runGui():
     downloadStatus.set("Downloading...")
     window.update_idletasks()
     def run():
-      runDownloader(v3.strip(), v1.strip(), v2.strip(), window, textDownloadInfo)
+      downloader.run()
       downloadStatus.set("Download")
       window.update_idletasks()
       downloadBtn['state'] = tk.NORMAL
@@ -155,19 +127,16 @@ def runGui():
     # during the download process
     threading.Thread(target=run).start()
 
-  labelIntroText = _label(frameIntroText, "Canvas Downloader", helv24b, 25, tk.CENTER)
-  labelCanvasUrl = _label(frameCanvasUrl1, "Canvas URL: ")
-  entryCanvasUrl = _entry(frameCanvasUrl2, text=v1, textvariable=sv1)
-  labelCanvasToken = _label(frameCanvasToken1, text="Canvas Token: ")
-  entryCanvasToken = _entry(frameCanvasToken2, text=v2, textvariable=sv2, show="\u2022")
-  labelFilePath = _label(frameFilePath1, text="Canvas File Path: ")
-  entryFilePath = _entry(frameFilePath2, text=v3, textvariable=sv3)
-  downloadBtn = tk.Button(
-      master=frameDownloadBtn,
-      textvariable=downloadStatus,
-      font=helv16, command=downloadBtnClick,
-      fg="black",
-      state=tk.NORMAL)
+  labelIntroText = label(frameIntroText, "Canvas Downloader", Font.helv24b, 25, tk.CENTER)
+  labelCanvasUrl = label(frameCanvasUrl1, "Canvas URL: ")
+  entryCanvasUrl = entry(frameCanvasUrl2, text=v1, textvariable=sv1)
+  labelCanvasToken = label(frameCanvasToken1, text="Canvas Token: ")
+  entryCanvasToken = entry(frameCanvasToken2, text=v2, textvariable=sv2, show="\u2022")
+  labelFilePath = label(frameFilePath1, text="Canvas File Path: ")
+  entryFilePath = entry(frameFilePath2, text=v3, textvariable=sv3)
+  labelCourseFilters1 = label(frameCourseFilters1, text="Download courses: ")
+  labelCourseFilters2 = tk.Message(master=frameCourseFilters2, textvariable=sv4Display, font=Font.helv16, width=395, justify=tk.LEFT, bg="black", fg="white")
+
   scrollDownloadInfo = tk.Scrollbar(master=frameDownloadInfo)
   textDownloadInfo = RichText(
     master=frameDownloadInfo,
@@ -176,13 +145,30 @@ def runGui():
     height=20, 
     yscrollcommand=scrollDownloadInfo.set)
 
-  textDownloadInfo.config(font=consolas)
   scrollDownloadInfo.config(command=textDownloadInfo.yview)
   scrollDownloadInfo.pack(side=tk.RIGHT, fill=tk.Y)
+  textDownloadInfo.config(font=Font.consolas)
+
+  downloader = Downloader(v3.strip(), v1.strip(), v2.strip(), v4.strip().split(", "), window, textDownloadInfo)
+
+  courseFiltersWindow = CourseFilterWindow(window, downloader, sv4)
+  courseFiltersButton = tk.Button(
+      master=frameDownloadBtn,
+      text="Update Course Filters...",
+      font=Font.helv16, command=courseFiltersWindow.open,
+      fg="black",
+      state=tk.NORMAL)
+  downloadBtn = tk.Button(
+      master=frameDownloadBtn,
+      textvariable=downloadStatus,
+      font=Font.helv16, command=lambda : downloadBtnClick(downloader),
+      fg="black",
+      state=tk.NORMAL)
 
   sv1.trace_add("write", callback1)
   sv2.trace_add("write", callback2)
   sv3.trace_add("write", callback3)
+  sv4.trace_add("write", callback4)
 
   frameIntroText.grid(row=0, column=0, padx=3, pady=4, columnspan=2)
   labelIntroText.pack(fill=tk.X)
@@ -197,13 +183,17 @@ def runGui():
   frameFilePath1.grid(row=3, column=0, pady=2)
   frameFilePath2.grid(row=3, column=1)
   labelFilePath.pack(side="left")
-  entryFilePath.pack_configure(padx=14)
   entryFilePath.pack()
-  frameDownloadBtn.grid(row=4, column=0, pady=4, columnspan=2)
-  downloadBtn.pack(fill=tk.X)
-  frameDownloadInfo.grid(row=5, column=0, pady=4, columnspan=2)
+  frameCourseFilters1.grid(row=4, column=0, pady=2)
+  frameCourseFilters2.grid(row=4, column=1, sticky="we")
+  labelCourseFilters1.pack(side="left", anchor="n")
+  labelCourseFilters2.pack(side="left", padx=(10, 0))
+  frameDownloadBtn.grid(row=5, column=0, pady=4, columnspan=2)
+  courseFiltersButton.pack(side="left")
+  downloadBtn.pack(side="left")
+  frameDownloadInfo.grid(row=6, column=0, pady=4, columnspan=2)
   textDownloadInfo.pack(side=tk.LEFT)
 
   window.mainloop()
 
-  _onClose([v1, v2, v3])
+  _onClose([v1, v2, v3, v4])

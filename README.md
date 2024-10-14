@@ -15,6 +15,9 @@ Downloads files from Canvas straight to your computer, into a directory you spec
 1. You can run the app by running the command ```python ./main.py``` in the directory containing the code.
 You should see a GUI where you can specify the Canvas token, Canvas URL, and Canvas file path. Refer to the [Usage Notes](#usage-notes) section below for more information.
 2. Take note that the app will take a few minutes to download all the files. **With the current implementation, files containing the same name in the folder will be overwritten. You can safely create new files if they do not have the same name as any file on Canvas.**
+3. The app will produce a log of the files downloaded in the root folder, named `.files`. (e.g. if you saved the Canvas files on the desktop, then there will be a `.files` log on the desktop). If you want to ensure that all the files are re-downloaded, you may remove the `.files` log on your own or click on the `Clear File Log` button in the application.
+4. You may use the `Course Filters` dialog to adjust the courses you want to download. If not, files will be downloaded from all of your
+currently loaded courses on Canvas.
 
 ## Usage notes
 
