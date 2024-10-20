@@ -6,7 +6,7 @@ import threading
 import tkinter as tk
 import tkinter.ttk as ttk
 from downloader import Downloader
-from richtext import RichText
+from RichText import RichText
 from gui.components import entry, Font, label
 from gui.coursefilters import CourseFilterWindow
 
