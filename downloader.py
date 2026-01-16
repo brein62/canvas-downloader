@@ -6,7 +6,7 @@ import pathlib
 import tkinter as tk
 import os
 
-from RichText import RichText
+from richtext import RichText
 from filemodels import Course, File, FileLog, Folder
 
 os.system("")
