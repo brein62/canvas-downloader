@@ -120,12 +120,14 @@ class Downloader:
     Returns:
       requests.Response: The response received from the Canvas API request made.
     """
+    fullPath = f"{self.canvasUrl}/api/v1/{apiPath}?per_page=1000&access_token={self.canvasToken}"
     response = requests.get(
-      f"{self.canvasUrl}/api/v1/{apiPath}?per_page=1000&access_token={self.canvasToken}",
+      fullPath,
       headers={
         'Accept': 'application/json'
       }    
     )
+    print(response)
     return response
 
   def fetchCourses(self) -> list[Course]:
@@ -219,14 +221,14 @@ class Downloader:
             if fileLog.isUpdated(file):
               self._print(f"{color.YELLOW}No updates required for file ID {file.id}: {file.display_name}{color.END}")
             else:
-              fileLog.update(file.uuid, file.modified_at)
+              fileLog.update(file.id, file.modified_at)
               downloadStatus = file.download(f"{self.root}/{courseNameUsed}{path}")
               if downloadStatus:
                 self._print(f"{color.GREEN}Updated file ID {file.id}: {file.display_name}{color.END}")
               else:
                 self._print("Failed to download!")
           else:
-            fileLog.append(file.uuid, file.modified_at)
+            fileLog.append(file.id, file.modified_at)
             downloadStatus = file.download(f"{self.root}/{courseNameUsed}{path}")
             if downloadStatus:
               self._print(f"{color.GREEN}Added file ID {file.id}: {file.display_name}{color.END}")
