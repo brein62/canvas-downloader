@@ -8,3 +8,8 @@ __pycache__
 None
 None/**
 venv
+
+# Python build files
+build
+dist
+main.spec
